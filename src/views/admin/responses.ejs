@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Отклики: <%= form.title %></title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <a href="/admin">← Назад</a>
+    <h1>Отклики: <%= form.title %></h1>
+    
+    <% if (submissions.length === 0) { %>
+      <p>Пока нет откликов.</p>
+    <% } else { %>
+      <table>
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <% schema.forEach(field => { %>
+              <th><%= field.label %></th>
+            <% }) %>
+          </tr>
+        </thead>
+        <tbody>
+          <% submissions.forEach(sub => { %>
+            <tr>
+              <td><%= new Date(sub.created_at).toLocaleString('ru-RU') %></td>
+              <% schema.forEach(field => { %>
+                <td><%= sub.data[field.name] || '' %></td>
+              <% }) %>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</body>
+</html>

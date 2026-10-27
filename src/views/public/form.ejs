@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title><%= form.title %></title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container form-container">
+    <h1><%= form.title %></h1>
+    <form action="/apply/<%= form.slug %>" method="POST">
+      
+      <% schema.forEach(field => { %>
+        <div class="form-group">
+          <label>
+            <%= field.label %>
+            <% if (field.required) { %><span style="color:red">*</span><% } %>
+          </label>
+          
+          <% if (field.type === 'textarea') { %>
+            <textarea name="<%= field.name %>" <%= field.required ? 'required' : '' %>></textarea>
+          <% } else { %>
+            <input type="text" name="<%= field.name %>" <%= field.required ? 'required' : '' %>>
+          <% } %>
+        </div>
+      <% }) %>
+      
+      <button type="submit" class="btn btn-primary">Отправить отклик</button>
+    </form>
+  </div>
+</body>
+</html>
