@@ -1,33 +1,65 @@
-const path = require('path');
 const fs = require('fs');
-const Database = require('better-sqlite3');
+const path = require('path');
 
-// Создаем папку data, если ее нет
 const dataDir = path.join(__dirname, '..', 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-// Подключаем базу данных SQLite
-const db = new Database(path.join(dataDir, 'app.db'));
-db.pragma('journal_mode = WAL');
+const dbPath = path.join(dataDir, 'app.json');
 
-// Создаем таблицы, если их нет
-db.exec(`
-  CREATE TABLE IF NOT EXISTS forms (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    slug TEXT UNIQUE NOT NULL,
-    schema_json TEXT NOT NULL DEFAULT '[]',
-    published INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
-  );
+// Инициализация базы данных
+if (!fs.existsSync(dbPath)) {
+  fs.writeFileSync(dbPath, JSON.stringify({ forms: [], submissions: [] }, null, 2));
+}
 
-  CREATE TABLE IF NOT EXISTS submissions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    form_id INTEGER NOT NULL,
-    data_json TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    FOREIGN KEY (form_id) REFERENCES forms(id)
-  );
-`);
+const db = {
+  read: () => JSON.parse(fs.readFileSync(dbPath, 'utf-8')),
+  write: (data) => fs.writeFileSync(dbPath, JSON.stringify(data, null, 2)),
+  
+  getForms: () => {
+    const data = db.read();
+    return data.forms.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  },
+  
+  getFormById: (id) => db.read().forms.find(f => f.id === Number(id)),
+  getFormBySlug: (slug) => db.read().forms.find(f => f.slug === slug && f.published === 1),
+  
+  addForm: (form) => {
+    const data = db.read();
+    form.id = Date.now();
+    form.created_at = new Date().toISOString();
+    data.forms.push(form);
+    db.write(data);
+    return form;
+  },
+  
+  updateForm: (id, updates) => {
+    const data = db.read();
+    const index = data.forms.findIndex(f => f.id === Number(id));
+    if (index !== -1) {
+      data.forms[index] = { ...data.forms[index], ...updates };
+      db.write(data);
+    }
+  },
+
+  addSubmission: (formId, dataJson) => {
+    const data = db.read();
+    const submission = {
+      id: Date.now(),
+      form_id: formId,
+      data_json: dataJson,
+      created_at: new Date().toISOString()
+    };
+    data.submissions.push(submission);
+    db.write(data);
+    return submission;
+  },
+
+  getSubmissionsByFormId: (formId) => {
+    const data = db.read();
+    return data.submissions
+      .filter(s => s.form_id === Number(formId))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }
+};
 
 module.exports = db;
